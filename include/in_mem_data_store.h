@@ -49,7 +49,7 @@ template <typename data_t> class InMemDataStore : public AbstractDataStore<data_
 
     virtual float get_distance(const data_t *preprocessed_query, const location_t loc) const override;
     virtual float get_distance(const location_t loc1, const location_t loc2) const override;
-
+    virtual float get_norm(const location_t loc1) const override;
     virtual void get_distance(const data_t *preprocessed_query, const location_t *locations,
                               const uint32_t location_count, float *distances,
                               AbstractScratch<data_t> *scratch) const override;

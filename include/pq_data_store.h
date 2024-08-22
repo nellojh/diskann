@@ -52,7 +52,7 @@ template <typename data_t> class PQDataStore : public AbstractDataStore<data_t>
 
     virtual float get_distance(const data_t *query, const location_t loc) const override;
     virtual float get_distance(const location_t loc1, const location_t loc2) const override;
-
+    virtual float get_norm(const location_t loc1) const override;
     // NOTE: Caller must invoke "PQDistance->preprocess_query" ONCE before calling
     // this function.
     virtual void get_distance(const data_t *preprocessed_query, const location_t *locations,

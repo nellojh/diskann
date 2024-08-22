@@ -165,7 +165,10 @@ template <typename data_t> float PQDataStore<data_t>::get_distance(const locatio
 {
     throw std::logic_error("Not implemented yet");
 }
-
+template <typename data_t> float PQDataStore<data_t>::get_norm(const diskann::location_t loc1) const
+{
+    throw std::logic_error("Not implemented yet");
+}
 template <typename data_t>
 void PQDataStore<data_t>::get_distance(const data_t *preprocessed_query, const location_t *locations,
                                        const uint32_t location_count, float *distances,

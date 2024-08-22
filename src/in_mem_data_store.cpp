@@ -6,7 +6,7 @@
 #include "in_mem_data_store.h"
 
 #include "utils.h"
-
+#include "simd_utils.h"
 namespace diskann
 {
 
@@ -217,7 +217,113 @@ float InMemDataStore<data_t>::get_distance(const location_t loc1, const location
     return _distance_fn->compare(_data + loc1 * _aligned_dim, _data + loc2 * _aligned_dim,
                                  (uint32_t)this->_aligned_dim);
 }
+template <typename T> float calc_norm(const T *a, uint32_t size)
+{
+    if (!std::is_floating_point<T>::value)
+    {
+        diskann::cerr << "ERROR: FastL2 only defined for float currently." << std::endl;
+        throw diskann::ANNException("ERROR: FastL2 only defined for float currently.", -1, __FUNCSIG__, __FILE__,
+                                    __LINE__);
+    }
+    float result = 0;
+#ifdef __GNUC__
+#ifdef __AVX__
+#define AVX_L2NORM(addr, dest, tmp)                                                                                    \
+    tmp = _mm256_loadu_ps(addr);                                                                                       \
+    tmp = _mm256_mul_ps(tmp, tmp);                                                                                     \
+    dest = _mm256_add_ps(dest, tmp);
 
+    __m256 sum;
+    __m256 l0, l1;
+    uint32_t D = (size + 7) & ~7U;
+    uint32_t DR = D % 16;
+    uint32_t DD = D - DR;
+    const float *l = (float *)a;
+    const float *e_l = l + DD;
+    float unpack[8] __attribute__((aligned(32))) = {0, 0, 0, 0, 0, 0, 0, 0};
+
+    sum = _mm256_loadu_ps(unpack);
+    if (DR)
+    {
+        AVX_L2NORM(e_l, sum, l0);
+    }
+    for (uint32_t i = 0; i < DD; i += 16, l += 16)
+    {
+        AVX_L2NORM(l, sum, l0);
+        AVX_L2NORM(l + 8, sum, l1);
+    }
+    _mm256_storeu_ps(unpack, sum);
+    result = unpack[0] + unpack[1] + unpack[2] + unpack[3] + unpack[4] + unpack[5] + unpack[6] + unpack[7];
+#else
+#ifdef __SSE2__
+#define SSE_L2NORM(addr, dest, tmp)                                                                                    \
+    tmp = _mm128_loadu_ps(addr);                                                                                       \
+    tmp = _mm128_mul_ps(tmp, tmp);                                                                                     \
+    dest = _mm128_add_ps(dest, tmp);
+
+    __m128 sum;
+    __m128 l0, l1, l2, l3;
+    uint32_t D = (size + 3) & ~3U;
+    uint32_t DR = D % 16;
+    uint32_t DD = D - DR;
+    const float *l = a;
+    const float *e_l = l + DD;
+    float unpack[4] __attribute__((aligned(16))) = {0, 0, 0, 0};
+
+    sum = _mm_load_ps(unpack);
+    switch (DR)
+    {
+    case 12:
+        SSE_L2NORM(e_l + 8, sum, l2);
+    case 8:
+        SSE_L2NORM(e_l + 4, sum, l1);
+    case 4:
+        SSE_L2NORM(e_l, sum, l0);
+    default:
+        break;
+    }
+    for (uint32_t i = 0; i < DD; i += 16, l += 16)
+    {
+        SSE_L2NORM(l, sum, l0);
+        SSE_L2NORM(l + 4, sum, l1);
+        SSE_L2NORM(l + 8, sum, l2);
+        SSE_L2NORM(l + 12, sum, l3);
+    }
+    _mm_storeu_ps(unpack, sum);
+    result += unpack[0] + unpack[1] + unpack[2] + unpack[3];
+#else
+    float dot0, dot1, dot2, dot3;
+    const float *last = a + size;
+    const float *unroll_group = last - 3;
+
+    /* Process 4 items with each loop for efficiency. */
+    while (a < unroll_group)
+    {
+        dot0 = a[0] * a[0];
+        dot1 = a[1] * a[1];
+        dot2 = a[2] * a[2];
+        dot3 = a[3] * a[3];
+        result += dot0 + dot1 + dot2 + dot3;
+        a += 4;
+    }
+    /* Process last 0-3 pixels.  Not needed for standard vector lengths. */
+    while (a < last)
+    {
+        result += (*a) * (*a);
+        a++;
+    }
+#endif
+#endif
+#endif
+    return sqrt(result);
+}
+template <typename data_t>
+float InMemDataStore<data_t>::get_norm(const location_t loc1) const
+{
+
+    return calc_norm(_data + loc1 * _aligned_dim,
+                     (uint32_t)this->_aligned_dim);
+}
 template <typename data_t>
 void InMemDataStore<data_t>::get_distance(const data_t *preprocessed_query, const std::vector<location_t> &ids,
                                           std::vector<float> &distances, AbstractScratch<data_t> *scratch_space) const

@@ -232,27 +232,27 @@ void insert_next_batch(diskann::AbstractIndex &index, size_t start, size_t end, 
             tl_count_inter_time[t_id].push_back(thread_count_inter_time);
         }
         const double elapsedSeconds = insert_timer.elapsed() / 1000000.0;
-        std::cout<<"\n****************tl_count_insert_time******************\n";
-        print_p99(insert_threads,tl_count_insert_time);
-        std::cout<<"\n****************tl_count_pre_time******************\n";
-        print_p99(insert_threads,tl_count_pre_time);
-        std::cout<<"\n****************tl_count_search_time******************\n";
-        print_p99(insert_threads,tl_count_search_time);
-        std::cout<<"\n****************tl_count_iterate_time******************\n";
-        print_p99(insert_threads,tl_count_iterate_time);
-        std::cout<<"\n****************tl_count_erase_time******************\n";
-        print_p99(insert_threads,tl_count_erase_time);
-        std::cout<<"\n****************tl_count_prune_time******************\n";
-        print_p99(insert_threads,tl_count_prune_time);
-        std::cout<<"\n****************tl_count_add_time******************\n";
-        print_p99(insert_threads,tl_count_add_time);
-        std::cout<<"\n*****************tl_count_inter_time*****************\n";
-        print_p99(insert_threads,tl_count_inter_time);
-        std::cout<<"\n**********************************\n";
+//        std::cout<<"\n****************tl_count_insert_time******************\n";
+//        print_p99(insert_threads,tl_count_insert_time);
+//        std::cout<<"\n****************tl_count_pre_time******************\n";
+//        print_p99(insert_threads,tl_count_pre_time);
+//        std::cout<<"\n****************tl_count_search_time******************\n";
+//        print_p99(insert_threads,tl_count_search_time);
+//        std::cout<<"\n****************tl_count_iterate_time******************\n";
+//        print_p99(insert_threads,tl_count_iterate_time);
+//        std::cout<<"\n****************tl_count_erase_time******************\n";
+//        print_p99(insert_threads,tl_count_erase_time);
+//        std::cout<<"\n****************tl_count_prune_time******************\n";
+//        print_p99(insert_threads,tl_count_prune_time);
+//        std::cout<<"\n****************tl_count_add_time******************\n";
+//        print_p99(insert_threads,tl_count_add_time);
+//        std::cout<<"\n*****************tl_count_inter_time*****************\n";
+//        print_p99(insert_threads,tl_count_inter_time);
+//        std::cout<<"\n**********************************\n";
         std::cout << "Insertion time " << elapsedSeconds << " seconds (" << (end - start) / elapsedSeconds
                   << " points/second overall, " << (end - start) / elapsedSeconds / insert_threads << " per thread)"
                   << std::endl;
-        std::cout<<"\n\n\ncount_prune:"<<count_prune<<"\n\n\n";
+//        std::cout<<"\n\n\ncount_prune:"<<count_prune<<"\n\n\n";
         if (num_failed > 0)
             std::cout << num_failed << " of " << end - start << "inserts failed" << std::endl;
     }
