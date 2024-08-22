@@ -41,7 +41,7 @@ uint64_t final_count_erase_time=0;
 uint64_t final_count_prune_time=0;
 uint64_t final_count_add_time=0;
 uint64_t final_count_inter_time=0;
-
+uint64_t count_prune=0;
 //delete part
 thread_local uint64_t thread_count_total_time;
 thread_local uint64_t thread_count_find_delete_time;
@@ -56,7 +56,7 @@ uint64_t final_count_find_time;
 uint64_t final_count_delete_time;
 uint64_t final_count_pre_delete_time;
 uint64_t final_count_occ_time;
-
+std::vector<uint64_t> count_600;
 namespace diskann
 {
 uint64_t getTimePoint() {
@@ -1020,6 +1020,7 @@ std::tuple<uint64_t ,uint64_t,uint64_t> Index<T, TagT, LabelT>::search_for_point
                                                         uint32_t filteredLindex)
 {
     const std::vector<uint32_t> init_ids = get_init_ids();
+//    std::cout<<init_ids.size()<<"\n";
     const std::vector<LabelT> unused_filter_label;
     auto start_count_iterate_time=getTimePoint();
     if (!use_filter)
@@ -1029,6 +1030,7 @@ std::tuple<uint64_t ,uint64_t,uint64_t> Index<T, TagT, LabelT>::search_for_point
     }
     else
     {
+//        std::cout<<"\n\n\n\n\nwrong\n\n\n\n";
         std::shared_lock<std::shared_timed_mutex> tl(_tag_lock, std::defer_lock);
         if (_dynamic_index)
             tl.lock();
@@ -1071,7 +1073,7 @@ std::tuple<uint64_t ,uint64_t,uint64_t> Index<T, TagT, LabelT>::search_for_point
     auto end_count_iterate_time=getTimePoint();
     auto count_iterate_time=end_count_iterate_time-start_count_iterate_time;
     auto &pool = scratch->pool();
-
+//    std::cout<<pool.size()<<"\n";
     for (uint32_t i = 0; i < pool.size(); i++)
     {
         if (pool[i].id == (uint32_t)location)
@@ -1277,6 +1279,7 @@ uint64_t Index<T, TagT, LabelT>::inter_insert(uint32_t n, std::vector<uint32_t> 
 
         if (prune_needed)
         {
+            count_prune++;
             tsl::robin_set<uint32_t> dummy_visited(0);
             std::vector<Neighbor> dummy_pool(0);
 
@@ -2423,6 +2426,7 @@ inline void Index<T, TagT, LabelT>::process_delete(const tsl::robin_set<uint32_t
     int t_id = omp_get_thread_num(); // 线程id
     tl_count_pre_delete_time[t_id].push_back(end_count_pre_delete_time-start_count_pre_delete_time);
     auto start_count_occ_time=getTimePoint();
+//    count_600.emplace_back(expanded_nodes_set.size());
     if (modify)
     {
         if (expanded_nodes_set.size() <= range)
@@ -2522,7 +2526,7 @@ consolidation_report Index<T, TagT, LabelT>::consolidate_deletes(const IndexWrit
     diskann::Timer timer;
     int count=0;
     auto start_count_find_delete_time=getTimePoint();
-//#pragma omp parallel for num_threads(num_threads) schedule(dynamic, 8192) reduction(+ : num_calls_to_process_delete)
+#pragma omp parallel for num_threads(num_threads) schedule(dynamic, 8192) reduction(+ : num_calls_to_process_delete)
 //std::cout<<"\n\n"<<_max_points<<"\n\n";
 //std::ofstream outfile_2("graph_new.txt"); // 创建并打开文件
 //for(auto i=0;i<=_max_points;i++){

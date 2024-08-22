@@ -38,6 +38,7 @@ extern uint64_t final_count_find_time;
 extern uint64_t final_count_delete_time;
 extern uint64_t final_count_pre_delete_time;
 extern uint64_t final_count_occ_time;
-
+extern uint64_t count_prune;
+extern std::vector<uint64_t> count_600;
 
 #endif // DISKANN_TIME_COUNT_H

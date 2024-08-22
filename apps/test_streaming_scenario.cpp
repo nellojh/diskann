@@ -59,6 +59,38 @@ void print_p99(int thread_num,std::vector<std::vector<uint64_t>> &tl_microsecond
               << (microsecond_latencies[(int)(microsecond_latencies.size() * 0.999)])
               << std::endl;
 }
+void print_p99_(int thread_num,std::vector<uint64_t> &tl_microsecond_latencies) {
+    std::vector<uint64_t> microsecond_latencies;
+    microsecond_latencies.insert(microsecond_latencies.end(), tl_microsecond_latencies.begin(), tl_microsecond_latencies.end());
+
+    std::sort(microsecond_latencies.begin(), microsecond_latencies.end());
+
+    // 注意输出单位是: 微秒 us
+    std::vector<uint64_t> res;
+    uint64_t ma=0;
+    for(auto it:microsecond_latencies){
+        ma=std::max(ma,it);
+    }
+    res.resize(ma+1,0);
+    for(auto it:microsecond_latencies){
+        res[it]++;
+    }
+    uint64_t count_6=0;
+    uint64_t count_64=0;
+    for(int i=1;i<res.size();i++){
+        if(res[i]>0){
+            std::cout<<i<<"_"<<res[i]<<",";
+            if(i>600){
+                count_6+=res[i];
+            }
+            if(i>64){
+                count_64+=res[i];
+            }
+        }
+
+    }
+    std::cout<<"\n"<<count_64<<"_"<<count_6<<"_"<<microsecond_latencies.size()<<"\n";
+}
 uint64_t getTimePoint() {
     auto now = std::chrono::system_clock::now();
     auto now_micros = std::chrono::time_point_cast<std::chrono::microseconds>(now);
@@ -165,12 +197,12 @@ void insert_next_batch(diskann::AbstractIndex &index, size_t start, size_t end, 
         final_count_prune_time=0;
         final_count_add_time=0;
         final_count_inter_time=0;
-
+        count_prune=0;
         diskann::Timer insert_timer;
         std::cout << std::endl << "Inserting from " << start << " to " << end << std::endl;
 
         size_t num_failed = 0;
-//#pragma omp parallel for num_threads((int32_t)insert_threads) schedule(dynamic) reduction(+ : num_failed)
+#pragma omp parallel for num_threads((int32_t)insert_threads) schedule(dynamic) reduction(+ : num_failed)
         for (int64_t j = start; j < (int64_t)end; j++)
         {
             int insert_result = -1;
@@ -220,6 +252,7 @@ void insert_next_batch(diskann::AbstractIndex &index, size_t start, size_t end, 
         std::cout << "Insertion time " << elapsedSeconds << " seconds (" << (end - start) / elapsedSeconds
                   << " points/second overall, " << (end - start) / elapsedSeconds / insert_threads << " per thread)"
                   << std::endl;
+        std::cout<<"\n\n\ncount_prune:"<<count_prune<<"\n\n\n";
         if (num_failed > 0)
             std::cout << num_failed << " of " << end - start << "inserts failed" << std::endl;
     }
@@ -395,7 +428,7 @@ void build_incremental_index(const std::string &data_path, const uint32_t L, con
                                            pts_to_labels);
     });
     insert_task.wait();
-
+    count_600.clear();
     for (size_t start = active_window; start + consolidate_interval <= max_points_to_insert;
          start += consolidate_interval)
     {
@@ -411,18 +444,20 @@ void build_incremental_index(const std::string &data_path, const uint32_t L, con
             delete_tasks[delete_tasks.size() - 1].wait();
         if (start >= active_window + consolidate_interval)
         {
-            if(start > active_window + consolidate_interval){
-                exit(0);
-            }
+//            if(start > active_window + consolidate_interval){
+//                //print_p99_(1,count_600);
+//                exit(0);
+//            }
             auto start_del = start - active_window - consolidate_interval;
             auto end_del = start - active_window;
 
             delete_tasks.emplace_back(std::async(std::launch::async, [&]() {
                 delete_and_consolidate<T, TagT, LabelT>(*index, delete_params, (size_t)start_del, (size_t)end_del);
             }));
+
         }
-        if (delete_tasks.size() > 0)
-            delete_tasks[delete_tasks.size() - 1].wait();
+//        if (delete_tasks.size() > 0)
+//            delete_tasks[delete_tasks.size() - 1].wait();
     }
     if (delete_tasks.size() > 0)
         delete_tasks[delete_tasks.size() - 1].wait();

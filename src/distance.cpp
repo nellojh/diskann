@@ -222,6 +222,7 @@ float DistanceL2Float::compare(const float *a, const float *b, uint32_t size) co
 
 template <typename T> float SlowDistanceL2<T>::compare(const T *a, const T *b, uint32_t length) const
 {
+    std::cout<<"slow\n\n\n";
     float result = 0.0f;
     for (uint32_t i = 0; i < length; i++)
     {
